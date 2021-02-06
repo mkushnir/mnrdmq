@@ -1,4 +1,4 @@
-from base import _controller, _agent
+from mnrdmq.base import _controller, _agent
 
 
 class Controller(_controller):
