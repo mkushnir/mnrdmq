@@ -1,8 +1,8 @@
 import sys
-import mnrdmq
+from import mnrdmq.simple import Controller
 
 def test_controller():
-    c = mnrdmq.Controller(host='172.16.1.10')
+    c = Controller(host='172.16.1.10')
     c.serve()
 
 

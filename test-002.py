@@ -1,10 +1,10 @@
 import sys
 import time
 
-import mnrdmq
+from mnrdmq.simple import Agent
 
 def test_agent(name):
-    a = mnrdmq.Agent(name=name, host='172.16.1.10')
+    a = Agent(name=name, host='172.16.1.10')
     time.sleep(1)
     a.join()
     try:
