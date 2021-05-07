@@ -71,7 +71,7 @@ class _base(object):
                     a = json.loads(args)
                     h(a)
                 except Exception:
-                    self.logger.exception()
+                    self.logger.exception('Error handling cmd {}, args {}'.format(cmd, args))
 
     def close(self):
         self.pthr.stop()
@@ -134,7 +134,7 @@ class _controller(_base):
 
     def _handle_status(self, status):
         self.logger.info('got status {} from {}: {}'.format(
-            status['status'], status['agent'], status))
+            status['data']['status'], status['agent'], status))
 
     def _setup(self):
         # the last call in the constructor
