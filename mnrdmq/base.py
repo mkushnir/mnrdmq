@@ -14,12 +14,35 @@ class _base(object):
     _AGNT = 'mnrdmqagnt'
     _re_command = re.compile(rb'^([^:]+):(.*)$')
 
-    def __init__(self, host='localhost', port=6379, db=0, logger=None):
-        self.conn = redis.Redis(host=host, port=port, db=db)
+    def __init__(self,
+                 host='localhost',
+                 port=6379,
+                 db=0,
+                 password=None,
+                 ssl=False,
+                 ssl_keyfile=None,
+                 ssl_certfile=None,
+                 ssl_cert_reqs=None,
+                 ssl_ca_certs=None,
+                 logger=None):
+        """Initialize instance."""
+        self.conn = redis.Redis(
+            host=host,
+            port=port,
+            db=db,
+            password=password,
+            ssl=ssl,
+            ssl_keyfile=ssl_keyfile,
+            ssl_certfile=ssl_certfile,
+            ssl_cert_reqs=ssl_cert_reqs,
+            ssl_ca_certs=ssl_ca_certs)
+
         self.p = self.conn.pubsub()
+
         self._handlers = {}
+
         if logger is None:
-            self.logger = logging.getLogger()
+            self.logger = logging.getLogger(__name__)
         else:
             self.logger = logger
 
@@ -57,8 +80,31 @@ class _base(object):
 
 # controller
 class _controller(_base):
-    def __init__(self, host='localhost', port=6379, db=0, logger=None):
-        super(_controller, self).__init__(host, port, db, logger)
+    def __init__(self,
+                 host='localhost',
+                 port=6379,
+                 db=0,
+                 password=None,
+                 ssl=False,
+                 ssl_keyfile=None,
+                 ssl_certfile=None,
+                 ssl_cert_reqs=None,
+                 ssl_ca_certs=None,
+                 logger=None):
+        """Initialize instance."""
+
+        super(_controller, self).__init__(
+            host,
+            port,
+            db,
+            password,
+            ssl,
+            ssl_keyfile,
+            ssl_certfile,
+            ssl_cert_reqs,
+            ssl_ca_certs,
+            logger)
+
         self._agents = dict()
 
         self._add_handler('join', self._handle_join)
@@ -119,8 +165,32 @@ class _controller(_base):
 
 # agent
 class _agent(_base):
-    def __init__(self, name, host='localhost', port=6379, db=0, logger=None):
-        super(_agent, self).__init__(host, port, db, logger)
+    def __init__(self,
+                 name,
+                 host='localhost',
+                 port=6379,
+                 db=0,
+                 password=None,
+                 ssl=False,
+                 ssl_keyfile=None,
+                 ssl_certfile=None,
+                 ssl_cert_reqs=None,
+                 ssl_ca_certs=None,
+                 logger=None):
+        """Initialize instance."""
+
+        super(_agent, self).__init__(
+            host,
+            port,
+            db,
+            password,
+            ssl,
+            ssl_keyfile,
+            ssl_certfile,
+            ssl_cert_reqs,
+            ssl_ca_certs,
+            logger)
+
         self._name = name
         self._add_handler('discover', self._handle_discover)
         self._add_handler('status', self._handle_status)
