@@ -11,7 +11,7 @@ logger.setLevel(logging.INFO)
 
 
 def test_agent(name):
-    a = Agent(name=name, host='172.16.1.10', logger=logger)
+    a = Agent(name=name, host='127.0.0.1', logger=logger)
     time.sleep(1)
     a.join()
     try:

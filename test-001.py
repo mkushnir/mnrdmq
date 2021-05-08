@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from import mnrdmq.example import Controller
+from mnrdmq.example import Controller
 
 
 logging.basicConfig(format='%(asctime)-15s\t%(levelname)s:%(name)s: %(message)s')
@@ -10,7 +10,7 @@ logger.setLevel(logging.INFO)
 
 
 def test_controller():
-    c = Controller(host='172.16.1.10', logger=logger)
+    c = Controller(host='127.0.0.1', logger=logger)
     try:
         c.serve()
     finally:

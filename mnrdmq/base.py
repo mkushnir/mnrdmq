@@ -1,5 +1,6 @@
 """Simple controller-agent signalling system."""
 
+import logging
 import time
 import re
 import json
@@ -73,7 +74,13 @@ class _base(object):
             name ":" json-arguments
 
         where name matches the a-zA-Z0-9._- pattern, and json-arguments is
-        the json serialized structure specific the the given message.
+        the json serialized object specific the the given message.
+
+        Mandatory keys are:
+            - agent: agent's name;
+            - version: protocol version;
+            - result: result verb: OK, FAIL, optional;
+            - data: message data, optional.
         """
         self.logger.debug('msg: {}'.format(msg))
 
@@ -106,8 +113,8 @@ class _base(object):
 
 
 # controller
-_node_fields = ('caps', 'joined', 'left', 'seen', 'status')
-_node = namedtuple('_node', _node_fields, defaults=[None] * len(_node_fields))
+_node_fields = ('caps', 'joined', 'left', 'seen', 'status', 'meta')
+_node = namedtuple('_node', _node_fields, defaults=[None, 0.0, 0.0, 0.0, None, {}])
 
 class _controller(_base):
     def __init__(self,
@@ -152,11 +159,11 @@ class _controller(_base):
             self.logger.warning('already joined: {}, updating caps'.format(
                 agent))
 
-            self._agents[agent] = self._agents[agent].replace(
+            self._agents[agent] = self._agents[agent]._replace(
                 caps=args, joined=time.time())
 
         else:
-            self._agents[agent] = _node(caps=args, joined=time.time(), left=0.0)
+            self._agents[agent] = _node(caps=args, joined=time.time())
 
     def _handle_leave(self, args):
         agent = args['agent']
@@ -164,10 +171,11 @@ class _controller(_base):
 
         if agent not in self._agents:
             self.logger.warning('Not known: {}'.format(agent))
-            self._agents[agent] = _node(caps=args, joined=0.0, left=time.time())
+            self._agents[agent] = _node(caps=args, left=time.time())
 
         else:
-            self._agents[agent].left = time.time()
+            self._agents[agent] = self._agents[agent]._replace(
+                left=time.time())
 
     def _handle_status(self, args):
         agent = args['agent']
@@ -176,11 +184,11 @@ class _controller(_base):
         if agent not in self._agents:
             self.logger.warning('Not known: {}'.format(agent))
             self._agents[agent] = _node(
-                joined=0.0, left=0.0, seen=time.time(), status=args)
+                seen=time.time(), status=args)
 
         else:
-            self._agents[agent].seen = time.time()
-            self._agents[agent].status = args
+            self._agents[agent] = self._agents[agent]._replace(
+                seen=time.time(), status=args)
 
     def _setup(self):
         """Finalize initialization sequence.
@@ -205,7 +213,7 @@ class _controller(_base):
         if agent is not None:
             self.unicast(agent, 'status', {'version': 1})
         else:
-            self.broadcast('status', {'version': 1, 'bc': True})
+            self.broadcast('status', {'version': 1})
 
     def _serve(self):
         """Implementation defined callback in the controller's serve loop."""  # noqa
@@ -213,7 +221,7 @@ class _controller(_base):
 
     def serve(self):
         """Poor man's serve loop."""  # noqa
-        self.broadcast('discover', {'version': 1, 'bc': True})
+        self.broadcast('discover', {'version': 1})
         while True:
             time.sleep(10)
             self._serve()
