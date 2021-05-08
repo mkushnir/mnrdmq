@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from import mnrdmq.simple import Controller
+from import mnrdmq.example import Controller
 
 
 logging.basicConfig(format='%(asctime)-15s\t%(levelname)s:%(name)s: %(message)s')

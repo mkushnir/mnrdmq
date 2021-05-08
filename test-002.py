@@ -2,7 +2,7 @@ import sys
 import time
 import logging
 
-from mnrdmq.simple import Agent
+from mnrdmq.example import Agent
 
 
 logging.basicConfig(format='%(asctime)-15s\t%(levelname)s:%(name)s: %(message)s')
