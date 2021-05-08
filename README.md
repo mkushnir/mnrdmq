@@ -21,10 +21,10 @@ Base protocol defines the following events:
 
 - status:
 
--- agent reports its status.  Controller handles the event by updating
+  - agent reports its status.  Controller handles the event by updating
     the agent's status field and the update time.
 
--- controller requests status from agent(s).  An agent reports its
+  - controller requests status from agent(s).  An agent reports its
     status.  Controller handler the event as described above.
 
 
