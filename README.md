@@ -10,8 +10,8 @@ Protocol
 Base protocol defines the following events:
 
 - discover: controller broadcasts the discover request in order to collect
-  all knoen agents.  This is normally during controller's initial serve
-  sequenve.  Agent handles the event by sending the join event.
+  all known agents.  This is normally during controller's initial serve
+  sequence.  Agent handles the event by sending the join event.
 
 - join: agent joins the realm.  Controller handles the event by
   registering the agent's capabilities and join time.
@@ -25,7 +25,7 @@ Base protocol defines the following events:
     the agent's status field and the update time.
 
   - controller requests status from agent(s).  An agent reports its
-    status.  Controller handler the event as described above.
+    status.  Controller handles the event as described above.
 
 
 TODO
