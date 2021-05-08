@@ -18,6 +18,7 @@ def test_agent(name):
         a.work()
     finally:
         a.leave()
+        a.close()
 
 
 def main():

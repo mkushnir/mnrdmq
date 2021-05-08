@@ -11,7 +11,10 @@ logger.setLevel(logging.INFO)
 
 def test_controller():
     c = Controller(host='172.16.1.10', logger=logger)
-    c.serve()
+    try:
+        c.serve()
+    finally:
+        c.close()
 
 
 def main():

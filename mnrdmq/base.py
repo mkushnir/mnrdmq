@@ -4,6 +4,8 @@ import time
 import re
 import json
 
+from collections import namedtuple
+
 import redis
 
 
@@ -12,7 +14,7 @@ class _base(object):
     _CTRL = 'mnrdmqctrl'
     _BC = 'mnrdmqbc'
     _AGNT = 'mnrdmqagnt'
-    _re_command = re.compile(rb'^([^:]+):(.*)$')
+    _re_message = re.compile(rb'^([^:]+):(.*)$')
 
     def __init__(self,
                  host='localhost',
@@ -46,39 +48,67 @@ class _base(object):
         else:
             self.logger = logger
 
-    def _add_handler(self, cmd, h):
-        # called in the constructor
-        self._handlers[cmd.encode('utf-8')] = h
+    def _add_handler(self, event_or_command, h):
+        """Add event or command handler.
+
+        Can only be called in the implementation's constructor before the
+        final self._setup(...).
+        """
+        self._handlers[event_or_command.encode('utf-8')] = h
 
     def _setup(self, methods):
-        # the last call in the constructor
+        """Register methods and complete initialization sequence.
+
+        Must be the last call in the implementation's constructor with
+        the dictionary of Redis method handlers.
+        """
         self.p.subscribe(**methods)
         self.pthr = self.p.run_in_thread(sleep_time=1.0)
 
-    def _cmd(self, msg):
-        self.logger.debug('cmd: {}'.format(msg))
-        m = self._re_command.match(msg['data'])
+    def _dispatch(self, msg):
+        """Dispatch Redis messages.
+
+        Default implementation.  Supports the following message format:
+
+            name ":" json-arguments
+
+        where name matches the a-zA-Z0-9._- pattern, and json-arguments is
+        the json serialized structure specific the the given message.
+        """
+        self.logger.debug('msg: {}'.format(msg))
+
+        m = self._re_message.match(msg['data'])
+
         if not m:
             self.logger.error('unknown message: {}'.format(msg['data']))
+
         else:
-            cmd = m.group(1)
+            command_or_event = m.group(1)
             args = m.group(2)
-            if not cmd in self._handlers:
-                self.logger.error('unknown command: {}:{}'.format(cmd, args))
+
+            if not command_or_event in self._handlers:
+                self.logger.error('unknown command/event: {}:{}'.format(
+                    command_or_event, args))
             else:
-                h = self._handlers[cmd]
+                h = self._handlers[command_or_event]
                 try:
                     a = json.loads(args)
                     h(a)
+
                 except Exception:
-                    self.logger.exception('Error handling cmd {}, args {}'.format(cmd, args))
+                    self.logger.exception(
+                        'Error handling msg {}, args {}'.format(msg, args))
 
     def close(self):
+        """Close the node."""
         self.pthr.stop()
         self.conn.close()
 
 
 # controller
+_node_fields = ('caps', 'joined', 'left', 'seen', 'status')
+_node = namedtuple('_node', _node_fields, defaults=[None] * len(_node_fields))
+
 class _controller(_base):
     def __init__(self,
                  host='localhost',
@@ -92,7 +122,6 @@ class _controller(_base):
                  ssl_ca_certs=None,
                  logger=None):
         """Initialize instance."""
-
         super(_controller, self).__init__(
             host,
             port,
@@ -111,52 +140,79 @@ class _controller(_base):
         self._add_handler('leave', self._handle_leave)
         self._add_handler('status', self._handle_status)
 
-    def _handle_join(self, caps):
-        agent = caps.get('agent')
+    def _handle_join(self, args):
+        agent = args.get('agent')
         if agent is None:
-            self.logger.warning('invalid caps: {}, ignoring join'.format(caps))
+            self.logger.warning('invalid args: {}, ignoring join'.format(args))
             return
 
         self.logger.info('joined {}'.format(agent))
+
         if agent in self._agents:
-            self.logger.warning('already joined: {}, updating caps'.format(agent))
-            self._agents[agent] = caps
+            self.logger.warning('already joined: {}, updating caps'.format(
+                agent))
+
+            self._agents[agent] = self._agents[agent].replace(
+                caps=args, joined=time.time())
+
         else:
-            self._agents[agent] = caps
+            self._agents[agent] = _node(caps=args, joined=time.time(), left=0.0)
 
     def _handle_leave(self, args):
         agent = args['agent']
         self.logger.info('left {}'.format(agent))
-        if agent not in self._agents:
-            self.logger.warning('already left: {}'.format(agent))
-        else:
-            del self._agents[agent]
 
-    def _handle_status(self, status):
-        self.logger.info('got status {} from {}: {}'.format(
-            status['data']['status'], status['agent'], status))
+        if agent not in self._agents:
+            self.logger.warning('Not known: {}'.format(agent))
+            self._agents[agent] = _node(caps=args, joined=0.0, left=time.time())
+
+        else:
+            self._agents[agent].left = time.time()
+
+    def _handle_status(self, args):
+        agent = args['agent']
+        self.logger.info('status {}'.format(agent))
+
+        if agent not in self._agents:
+            self.logger.warning('Not known: {}'.format(agent))
+            self._agents[agent] = _node(
+                joined=0.0, left=0.0, seen=time.time(), status=args)
+
+        else:
+            self._agents[agent].seen = time.time()
+            self._agents[agent].status = args
 
     def _setup(self):
-        # the last call in the constructor
-        super(_controller, self)._setup({self._CTRL: self._cmd})
+        """Finalize initialization sequence.
 
-    def broadcast(self, cmd, args):
-        self.conn.publish(self._BC, '{}:{}'.format(cmd, json.dumps(args)))
+        Must be the last call in the implementation's constructor.
+        """
+        super(_controller, self)._setup({self._CTRL: self._dispatch})
 
-    def unicast(self, agent, cmd, args):
+    def broadcast(self, command_or_event, args):
+        """Send command/event to all nodes."""
+        self.conn.publish(self._BC, '{}:{}'.format(
+            command_or_event, json.dumps(args)))
+
+    def unicast(self, agent, command_or_event, args):
+        """Send command/event to the given node."""
         ch = '{}.{}'.format(self._AGNT, agent)
-        self.conn.publish(ch, '{}:{}'.format(cmd, json.dumps(args)))
+        self.conn.publish(ch, '{}:{}'.format(
+            command_or_event, json.dumps(args)))
 
     def status(self, agent=None):
+        """Request status from either one agent, or all agents."""
         if agent is not None:
             self.unicast(agent, 'status', {'version': 1})
         else:
             self.broadcast('status', {'version': 1, 'bc': True})
 
     def _serve(self):
+        """Implementation defined callback in the controller's serve loop."""  # noqa
         raise NotImplementedError()
 
     def serve(self):
+        """Poor man's serve loop."""  # noqa
         self.broadcast('discover', {'version': 1, 'bc': True})
         while True:
             time.sleep(10)
@@ -203,13 +259,17 @@ class _agent(_base):
             self.notify('status')
 
     def _setup(self):
-        # the last call in the constructor
+        """Finalize initialization sequence.
+
+        Must be the last call in the implementation's constructor.
+        """
         super(_agent, self)._setup({
-            '{}.{}'.format(self._AGNT, self._name): self._cmd,
-            self._BC: self._cmd,
+            '{}.{}'.format(self._AGNT, self._name): self._dispatch,
+            self._BC: self._dispatch,
         })
 
-    def notify(self, cmd, data=None):
+    def notify(self, command_or_event, data=None):
+        """Send a command/event to the controller."""
         args = {
             'agent': self._name,
             'version': 1,
@@ -221,18 +281,23 @@ class _agent(_base):
             args['result'] = 'OK'
             args['data'] = data
 
-        self.conn.publish(self._CTRL, '{}:{}'.format(cmd, json.dumps(args)))
+        self.conn.publish(self._CTRL, '{}:{}'.format(
+            command_or_event, json.dumps(args)))
 
     def join(self):
+        """Join the realm."""
         self.notify('join')
 
     def leave(self):
+        """Leave the realm."""
         self.notify('leave')
 
     def _work(self):
+        """Implementation defined callback in the agent's work loop."""  # noqa
         raise NotImplementedError()
 
     def work(self):
+        """Poor man's work loop."""  # noqa
         while True:
             time.sleep(10)
             self._work()
