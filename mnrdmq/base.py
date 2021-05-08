@@ -114,7 +114,12 @@ class _base(object):
 
 # controller
 _node_fields = ('caps', 'joined', 'left', 'seen', 'status', 'meta')
-_node = namedtuple('_node', _node_fields, defaults=[None, 0.0, 0.0, 0.0, None, {}])
+try:
+    _node = namedtuple(
+        '_node', _node_fields, defaults=(None, 0.0, 0.0, 0.0, None, {}), module=__name__)
+except TypeError:
+    _node = namedtuple('_node', _node_fields, module=__name__)
+    _node.__new__.__defaults__ = (None, 0.0, 0.0, 0.0, None, {})
 
 class _controller(_base):
     def __init__(self,
