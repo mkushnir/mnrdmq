@@ -130,6 +130,7 @@ except TypeError:
 
 class _controller(_base):
     def __init__(self,
+                 realm='',
                  host='localhost',
                  port=6379,
                  db=0,
@@ -142,6 +143,7 @@ class _controller(_base):
                  logger=None):
         """Initialize instance."""
         super(_controller, self).__init__(
+            realm,
             host,
             port,
             db,
@@ -243,6 +245,7 @@ class _controller(_base):
 class _agent(_base):
     def __init__(self,
                  name,
+                 realm='',
                  host='localhost',
                  port=6379,
                  db=0,
@@ -256,6 +259,7 @@ class _agent(_base):
         """Initialize instance."""
 
         super(_agent, self).__init__(
+            realm,
             host,
             port,
             db,
