@@ -18,6 +18,7 @@ class _base(object):
     _re_message = re.compile(rb'^([^:]+):(.*)$')
 
     def __init__(self,
+                 realm='',
                  host='localhost',
                  port=6379,
                  db=0,
@@ -29,6 +30,12 @@ class _base(object):
                  ssl_ca_certs=None,
                  logger=None):
         """Initialize instance."""
+
+        self._realm = realm
+        self._ctrl = '{}:{}'.format(self._CTRL, realm)
+        self._bc = '{}:{}'.format(self._BC, realm)
+        self._agnt = '{}:{}'.format(self._AGNT, realm)
+
         self.conn = redis.Redis(
             host=host,
             port=port,
@@ -200,16 +207,16 @@ class _controller(_base):
 
         Must be the last call in the implementation's constructor.
         """
-        super(_controller, self)._setup({self._CTRL: self._dispatch})
+        super(_controller, self)._setup({self._ctrl: self._dispatch})
 
     def broadcast(self, command_or_event, args):
         """Send command/event to all nodes."""
-        self.conn.publish(self._BC, '{}:{}'.format(
+        self.conn.publish(self._bc, '{}:{}'.format(
             command_or_event, json.dumps(args)))
 
     def unicast(self, agent, command_or_event, args):
         """Send command/event to the given node."""
-        ch = '{}.{}'.format(self._AGNT, agent)
+        ch = '{}.{}'.format(self._agnt, agent)
         self.conn.publish(ch, '{}:{}'.format(
             command_or_event, json.dumps(args)))
 
@@ -226,7 +233,7 @@ class _controller(_base):
 
     def serve(self):
         """Poor man's serve loop."""  # noqa
-        self.broadcast('discover', {'version': 1})
+        self.broadcast('discover', {'version': 1, 'realm': self._realm})
         while True:
             time.sleep(10)
             self._serve()
@@ -277,7 +284,7 @@ class _agent(_base):
         Must be the last call in the implementation's constructor.
         """
         super(_agent, self)._setup({
-            '{}.{}'.format(self._AGNT, self._name): self._dispatch,
+            '{}.{}'.format(self._agnt, self._name): self._dispatch,
             self._BC: self._dispatch,
         })
 
@@ -294,7 +301,7 @@ class _agent(_base):
             args['result'] = 'OK'
             args['data'] = data
 
-        self.conn.publish(self._CTRL, '{}:{}'.format(
+        self.conn.publish(self._ctrl, '{}:{}'.format(
             command_or_event, json.dumps(args)))
 
     def join(self):
