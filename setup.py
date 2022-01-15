@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 setup(
     name='mnrdmq',
     python_requires='>=3.7.0',
-    version='0.1.3',
+    version='0.1.5',
     license='BSD',
     packages=find_packages(),
     #include_package_data=True,
