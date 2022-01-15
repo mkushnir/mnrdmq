@@ -2,8 +2,8 @@ from mnrdmq.base import _controller, _agent
 
 
 class Controller(_controller):
-    def __init__(self, host='localhost', port=6379, db=0, logger=None):
-        super(Controller, self).__init__(host, port, db, logger=logger)
+    def __init__(self, realm='', host='localhost', port=6379, db=0, logger=None):
+        super(Controller, self).__init__(realm, host, port, db, logger=logger)
 
         self._add_handler('suspend', self._handle_suspend)
         self._add_handler('resume', self._handle_resume)
@@ -54,8 +54,8 @@ class Controller(_controller):
 
 
 class Agent(_agent):
-    def __init__(self, name, host='localhost', port=6379, db=0, logger=None):
-        super(Agent, self).__init__(name, host, port, db, logger=logger)
+    def __init__(self, name, realm='', host='localhost', port=6379, db=0, logger=None):
+        super(Agent, self).__init__(name, realm, host, port, db, logger=logger)
         self._kind = None
         self._state = None
         self._release = None
