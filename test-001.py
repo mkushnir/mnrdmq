@@ -1,4 +1,5 @@
 import sys
+import time
 import logging
 
 from mnrdmq.example import Controller
@@ -18,7 +19,14 @@ def test_controller():
 
 
 def main():
-    test_controller()
+    while True:
+        try:
+            test_controller()
+
+        except Exception as e:
+            logger.exception('test-001 exception')
+            logger.info('sleeping for {}'.format(5))
+            time.sleep(5)
 
 
 if __name__ == '__main__':

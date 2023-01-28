@@ -22,7 +22,14 @@ def test_agent(name):
 
 
 def main():
-    test_agent(sys.argv[1])
+    while True:
+        try:
+            test_agent(sys.argv[1])
+
+        except Exception as e:
+            logger.exception('test-002 exception')
+            logger.info('sleeping for {}'.format(5))
+            time.sleep(5)
 
 
 if __name__ == '__main__':

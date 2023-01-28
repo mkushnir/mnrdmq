@@ -1,0 +1,29 @@
+[build-system]
+requires = ['setuptools', 'wheel']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = "mnrdmq"
+requires-python = ">=3.7"
+
+#author = "Markiyan Kushnr"
+#author-email = "markiyan.kushnir@gmail.com"
+description = "Simple controller-agent framework"
+#url = "https://mkushir.mooo.com"
+
+dependencies = [
+    "redis",
+]
+
+dynamic = [
+    "version",
+]
+
+[tool.setuptools]
+packages = [
+    "mnrdmq",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "mnrdmq.version.__version__"}
+
