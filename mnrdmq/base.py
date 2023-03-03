@@ -167,10 +167,10 @@ class _controller(_base):
             self.logger.warning('invalid args: {}, ignoring join'.format(args))
             return
 
-        self.logger.info('joined {}'.format(agent))
+        self.logger.info('joining {}'.format(agent))
 
         if agent in self._agents:
-            self.logger.warning('already joined: {}, updating caps'.format(
+            self.logger.warning('Known: {}, updating caps'.format(
                 agent))
 
             self._agents[agent] = self._agents[agent]._replace(
@@ -181,9 +181,10 @@ class _controller(_base):
 
     def _handle_leave(self, args):
         agent = args['agent']
-        self.logger.info('left {}'.format(agent))
+        self.logger.info('leaving {}'.format(agent))
 
         if agent not in self._agents:
+            # opportunistic register
             self.logger.warning('Not known: {}'.format(agent))
             self._agents[agent] = _node(caps=args, left=time.time())
 
@@ -196,6 +197,7 @@ class _controller(_base):
         self.logger.info('status {}'.format(agent))
 
         if agent not in self._agents:
+            # opportunistic register
             self.logger.warning('Not known: {}'.format(agent))
             self._agents[agent] = _node(
                 seen=time.time(), status=args)
