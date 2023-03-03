@@ -291,7 +291,7 @@ class _agent(_base):
         """
         super(_agent, self)._setup({
             '{}.{}'.format(self._agnt, self._name): self._dispatch,
-            self._BCST: self._dispatch,
+            self._bcst: self._dispatch,
         })
 
     def notify(self, command_or_event, data=None):
