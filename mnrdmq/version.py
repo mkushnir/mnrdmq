@@ -1,5 +1,6 @@
 _version = None
 _version_long = None
+
 def _make_version():
     global _version, _version_long
     if _version is None or _version_long is None:

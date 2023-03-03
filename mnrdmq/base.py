@@ -13,7 +13,7 @@ import redis
 # base
 class _base(object):
     _CTRL = 'mnrdmqctrl'
-    _BC = 'mnrdmqbc'
+    _BCST = 'mnrdmqbcst'
     _AGNT = 'mnrdmqagnt'
     _re_message = re.compile(rb'^([^:]+):(.*)$')
 
@@ -33,7 +33,7 @@ class _base(object):
 
         self._realm = realm
         self._ctrl = '{}:{}'.format(self._CTRL, realm)
-        self._bc = '{}:{}'.format(self._BC, realm)
+        self._bcst = '{}:{}'.format(self._BCST, realm)
         self._agnt = '{}:{}'.format(self._AGNT, realm)
 
         self.conn = redis.Redis(
@@ -86,7 +86,7 @@ class _base(object):
         Mandatory keys are:
             - agent: agent's name;
             - version: protocol version;
-            - result: result verb: OK, FAIL, optional;
+            - result: result verb: OK, EX, optional;
             - data: message data, optional.
         """
         self.logger.debug('msg: {}'.format(msg))
@@ -213,7 +213,7 @@ class _controller(_base):
 
     def broadcast(self, command_or_event, args):
         """Send command/event to all nodes."""
-        self.conn.publish(self._bc, '{}:{}'.format(
+        self.conn.publish(self._bcst, '{}:{}'.format(
             command_or_event, json.dumps(args)))
 
     def unicast(self, agent, command_or_event, args):
@@ -289,7 +289,7 @@ class _agent(_base):
         """
         super(_agent, self)._setup({
             '{}.{}'.format(self._agnt, self._name): self._dispatch,
-            self._BC: self._dispatch,
+            self._BCST: self._dispatch,
         })
 
     def notify(self, command_or_event, data=None):
@@ -299,8 +299,11 @@ class _agent(_base):
             'version': 1,
         }
         if isinstance(data, Exception):
-            args['result'] = 'FAIL'
-            args['data'] = str(data)
+            args['result'] = 'EX'
+            args['data'] = {
+                'cls': str(data.__class__.__name__),
+                'args': data.args,
+            }
         else:
             args['result'] = 'OK'
             args['data'] = data

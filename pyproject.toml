@@ -26,4 +26,3 @@ packages = [
 
 [tool.setuptools.dynamic]
 version = {attr = "mnrdmq.version.__version__"}
-
