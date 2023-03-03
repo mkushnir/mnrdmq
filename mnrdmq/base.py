@@ -86,7 +86,7 @@ class _base(object):
         Mandatory keys are:
             - agent: agent's name;
             - version: protocol version;
-            - result: result verb: OK, EX, optional;
+            - code: code verb: OK, EX, optional;
             - data: message data, optional.
         """
         self.logger.debug('msg: {}'.format(msg))
@@ -299,13 +299,13 @@ class _agent(_base):
             'version': 1,
         }
         if isinstance(data, Exception):
-            args['result'] = 'EX'
+            args['code'] = 'EX'
             args['data'] = {
                 'cls': str(data.__class__.__name__),
                 'args': data.args,
             }
         else:
-            args['result'] = 'OK'
+            args['code'] = 'OK'
             args['data'] = data
 
         self.conn.publish(self._ctrl, '{}:{}'.format(
